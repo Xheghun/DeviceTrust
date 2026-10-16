@@ -2,7 +2,7 @@ package com.xheghun.devicetrust
 
 /** Entry point for creating a device-risk client. */
 public object DeviceTrust {
-    public const val SIGNAL_SCHEMA_VERSION: Int = 1
+    public const val SIGNAL_SCHEMA_VERSION: Int = 2
 
     @JvmStatic
     @JvmOverloads

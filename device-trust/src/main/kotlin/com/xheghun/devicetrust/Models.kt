@@ -15,6 +15,7 @@ public data class DeviceEvidence(
     val schemaVersion: Int,
     val collectedAtEpochMillis: Long,
     val signals: List<TrustSignal>,
+    val evaluatedSignalIds: Set<String> = emptySet(),
 )
 
 public data class TrustAssessment(

@@ -1,1 +1,18 @@
-<resources><string name="app_name">DeviceTrust</string></resources>
+<resources><string name="app_name">DeviceTrust</string>    <string name="monitor_scan_failed">Latest scan failed. Any displayed assessment is from an earlier scan.</string>
+    <string name="monitor_last_updated">Last assessed: %1$s</string>
+    <plurals name="monitor_coverage">
+        <item quantity="one">%1$d check fully evaluated</item>
+        <item quantity="other">%1$d checks fully evaluated</item>
+    </plurals>
+    <string name="monitor_polling_note">Checks run every 30 seconds while this screen is active. Missing signals do not establish safety; some checks may be unavailable.</string>
+    <string name="monitor_refresh">Refresh now</string>
+    <string name="monitor_timeline">Session timeline · latest 50 scans</string>
+    <string name="monitor_not_detected">NOT DETECTED</string>
+    <string name="monitor_baseline">Session baseline established</string>
+    <string name="monitor_score_delta">Score change: %1$+d</string>
+    <string name="monitor_added">Detected: %1$s</string>
+    <string name="monitor_removed">No longer detected: %1$s</string>
+    <string name="monitor_changed">Changed: %1$s</string>
+    <string name="monitor_unconfirmed">Unable to re-evaluate: %1$s</string>
+    <string name="monitor_level_change">Risk level: %1$s → %2$s</string>
+</resources>

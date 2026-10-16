@@ -134,6 +134,80 @@ val evidence = deviceTrust.collectEvidence()
 
 `DeviceEvidence` includes a `schemaVersion`, collection timestamp, and list of signals. Store or transmit the schema version together with the evidence so that server implementations can handle future schema changes.
 
+## Monitor an assessment session
+
+Create one monitor per session, retain it across foreground/background transitions, and collect
+its flow while the app is active. Each successful scan includes the original session baseline,
+changes against the last known signals, and a separate comparison against the baseline.
+
+```kotlin
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.xheghun.devicetrust.MonitoringEvent
+import com.xheghun.devicetrust.monitor
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
+
+val monitor = deviceTrust.monitor(interval = 30.seconds)
+
+lifecycleScope.launch {
+    repeatOnLifecycle(Lifecycle.State.STARTED) {
+        monitor.observe().collect { event ->
+            when (event) {
+                is MonitoringEvent.Assessed -> {
+                    val update = event.update
+                    showAssessment(update.current)
+                    showChanges(update.changes)
+                }
+                is MonitoringEvent.Failed -> showAssessmentUnavailable()
+            }
+        }
+    }
+}
+```
+
+Call `monitor.refresh()` from a coroutine to collect a new assessment immediately. It returns
+an `AssessmentUpdate` and publishes to the active observer. It throws on collection or policy
+failure; cancellation propagates normally. A refresh does not return a cached assessment.
+Use the returned value when coordinating a sensitive action with your backend.
+
+Behavior:
+
+- Polling starts when `observe()` is collected and stops when collection is cancelled. The
+  interval is the delay after a polling scan completes, defaults to 30 seconds, and must be
+  finite and at least one second. No background service or persistent storage is created.
+- Only one observer can collect a monitor at a time. Share the flow in your application's
+  lifecycle-owned scope if several consumers need it. Default clients serialize evidence
+  collection; the monitor also serializes all of its polling and manual refreshes.
+- The flow delivers the latest state and can conflate intermediate updates for slow consumers;
+  it is not a durable audit log. Resubscribing can replay the last state before the immediate
+  fresh scan completes. Use `sequence` to identify replay and `collectedAtEpochMillis` for
+  display. The timestamp is device-controlled, not proof of freshness for a backend.
+- The first successful scan establishes the baseline and has null changes. Each subsequent
+  successful scan emits an update even when nothing changed. Signal order, titles, and
+  collection timestamps do not create signal changes. Category, weight, and detail changes do.
+- Schema version 2 adds `evaluatedSignalIds`: IDs of checks that completed. An absent signal
+  counts as removed only if its check completed. Previously observed signals whose checks
+  are unavailable remain `unconfirmedSignals`, including across multiple incomplete scans.
+  Custom clients should populate coverage; the default empty set never confirms removal.
+- `changes` compares signals with their last known observation, retaining unresolved signals;
+  its score delta and risk-level transition compare the two latest successful assessments.
+  `changesSinceBaseline` compares against the first successful assessment instead.
+- A failed scan emits `MonitoringEvent.Failed`, retains the last successful result and baseline,
+  and retries at the next polling interval. Exceptions are not exposed through the event stream.
+  An unavailable individual check is partial coverage, not a whole-scan failure.
+- A lower score or a removed signal is not proof of recovery. Scores describe currently
+  detected evidence and may fall when checks become unavailable. Inspect coverage and
+  unconfirmed signals before interpreting a decrease. The baseline may itself be incomplete.
+- Create a new monitor to start a new session (for example, after logout). The monitor retains
+  only baseline/latest results and last known signals. The sample retains the latest 50 successful
+  scans in memory and pauses polling when its screen has no active lifecycle collectors.
+
+Monitoring is periodic observation, not instantaneous detection: changes between scans can be
+missed, and local evidence can be manipulated. Continue to authorize sensitive operations on
+the server using independently verified evidence.
+
 ## Checks
 
 DeviceTrust currently checks for:
